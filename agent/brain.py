@@ -50,12 +50,14 @@ REASON: <one sentence explaining the match or mismatch>"""
 
     try:
         result = ask_claude(prompt)
+        print(f"        Claude raw response: {repr(result[:100])}")
         score_match = re.search(r'SCORE:\s*(\d+)', result)
         reason_match = re.search(r'REASON:\s*(.+)', result)
         score = int(score_match.group(1)) if score_match else 0
         reason = reason_match.group(1).strip() if reason_match else "No reason parsed"
         return {**job, "score": score, "reason": reason}
     except Exception as e:
+        print(f"        Scoring exception: {e}")
         return {**job, "score": 0, "reason": f"Scoring error: {e}"}
 
 
