@@ -1,3 +1,4 @@
+from datetime import datetime, timezone, timedelta
 from dotenv import load_dotenv
 from agent.searcher import search_jobs
 from agent.brain import score_job
@@ -16,6 +17,9 @@ RESULTS_PER_TITLE = 10
 SCORE_THRESHOLD = 7
 SEEN_JOBS_FILE = "data/seen_jobs.txt"
 
+SGT = timezone(timedelta(hours=8))
+BURST_MODE_UNTIL = datetime(2026, 5, 27, 23, 59, tzinfo=SGT)  # tomorrow EOD SGT
+
 
 def load_seen_urls() -> set:
     try:
@@ -31,8 +35,16 @@ def save_seen_urls(urls: set) -> None:
 
 
 def main():
+    now_sgt = datetime.now(SGT)
+
+    # After burst mode ends, only run at 8am SGT
+    if now_sgt > BURST_MODE_UNTIL and now_sgt.hour != 8:
+        print(f"Skipping — burst mode ended. Next run at 8am SGT. (Current SGT: {now_sgt.strftime('%H:%M')})")
+        return
+
     print("=" * 50)
     print("Job Hunting Agent Starting...")
+    print(f"SGT time: {now_sgt.strftime('%Y-%m-%d %H:%M')}")
     print("=" * 50)
 
     print(f"\n[1/3] Searching for jobs in {LOCATION}...")

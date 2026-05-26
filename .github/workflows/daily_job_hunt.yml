@@ -2,11 +2,11 @@ name: Daily Job Hunt
 
 on:
   schedule:
-    - cron: "0 0 * * *"  # 8am Singapore time (UTC+8)
-  workflow_dispatch:       # allows manual run from GitHub
+    - cron: "0 */2 * * *"  # every 2 hours (code handles the 8am-only logic after May 27)
+  workflow_dispatch:         # allows manual run from GitHub
 
 permissions:
-  contents: write           # needed to commit seen_jobs.txt back to repo
+  contents: write            # needed to commit seen_jobs.txt back to repo
 
 jobs:
   hunt:
