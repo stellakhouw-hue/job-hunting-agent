@@ -14,6 +14,20 @@ JOB_TITLES = [
 LOCATION = "Singapore"
 RESULTS_PER_TITLE = 10
 SCORE_THRESHOLD = 7
+SEEN_JOBS_FILE = "data/seen_jobs.txt"
+
+
+def load_seen_urls() -> set:
+    try:
+        with open(SEEN_JOBS_FILE, "r") as f:
+            return set(line.strip() for line in f if line.strip())
+    except FileNotFoundError:
+        return set()
+
+
+def save_seen_urls(urls: set) -> None:
+    with open(SEEN_JOBS_FILE, "w") as f:
+        f.write("\n".join(sorted(urls)))
 
 
 def main():
@@ -25,14 +39,20 @@ def main():
     raw_jobs = search_jobs(JOB_TITLES, location=LOCATION, results_per_title=RESULTS_PER_TITLE)
     print(f"      Found {len(raw_jobs)} unique jobs.")
 
-    if not raw_jobs:
+    # Filter out already-seen jobs
+    seen_urls = load_seen_urls()
+    new_jobs = [j for j in raw_jobs if j.get("job_url") and j["job_url"] not in seen_urls and j["job_url"] != "nan"]
+    print(f"      {len(new_jobs)} are new (unseen before).")
+
+    if not new_jobs:
+        print("      No new jobs to score today.")
         send_daily_digest([])
         return
 
-    print(f"\n[2/3] Scoring {len(raw_jobs)} jobs with Claude...")
+    print(f"\n[2/3] Scoring {len(new_jobs)} new jobs with Claude...")
     scored_jobs = []
-    for i, job in enumerate(raw_jobs, 1):
-        print(f"      {i}/{len(raw_jobs)}: {job['title']} @ {job['company']}...", end=" ", flush=True)
+    for i, job in enumerate(new_jobs, 1):
+        print(f"      {i}/{len(new_jobs)}: {job['title']} @ {job['company']}...", end=" ", flush=True)
         result = score_job(job)
         scored_jobs.append(result)
         print(f"{result['score']}/10")
@@ -44,6 +64,11 @@ def main():
         reverse=True,
     )
     print(f"      {len(passing_jobs)} jobs passed (out of {len(scored_jobs)} scored).")
+
+    # Save all seen URLs (including ones that didn't pass — no point re-scoring them)
+    new_urls = {j["job_url"] for j in new_jobs if j.get("job_url")}
+    save_seen_urls(seen_urls | new_urls)
+    print(f"      Saved {len(new_urls)} new URLs to seen list.")
 
     print("\nSending Telegram digest...")
     send_daily_digest(passing_jobs)
