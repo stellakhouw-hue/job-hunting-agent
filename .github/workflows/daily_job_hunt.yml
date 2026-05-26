@@ -1,0 +1,31 @@
+name: Daily Job Hunt
+
+on:
+  schedule:
+    - cron: "0 0 * * *"  # 8am Singapore time (UTC+8)
+  workflow_dispatch:       # allows manual run from GitHub
+
+jobs:
+  hunt:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install anthropic python-dotenv requests pandas
+          pip install git+https://github.com/cullenwatson/JobSpy.git
+
+      - name: Run job hunt agent
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python main.py
